@@ -19,10 +19,15 @@
   },
   "homepage": "https://github.com/tomcorke/aoc2019#readme",
   "devDependencies": {
+    "@types/lodash": "^4.14.149",
     "@types/node": "^12.12.14",
     "nodemon": "^2.0.1",
+    "prettier": "^1.19.1",
     "ts-node": "^8.5.4",
+    "tslint-config-prettier": "^1.18.0",
     "typescript": "^3.7.2"
   },
-  "dependencies": {}
+  "dependencies": {
+    "lodash": "^4.17.15"
+  }
 }
