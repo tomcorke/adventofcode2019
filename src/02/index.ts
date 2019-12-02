@@ -1,4 +1,5 @@
 import { readFileSeparated, toNumber } from "../helpers";
+import { Solution } from "..";
 
 const getInput = readFileSeparated(",", "02", "input").then(results =>
   results.map(toNumber)
@@ -73,6 +74,7 @@ solution.partTwo = async () => {
       const input = swapVals(await getInput, noun, verb);
       const result = run(input);
       if (result[0] === 19690720) {
+        console.log(noun, verb);
         return 100 * noun + verb;
       }
     }

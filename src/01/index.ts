@@ -1,3 +1,5 @@
+import { Solution } from "../";
+
 import { readFileLines, toNumber } from "../helpers";
 
 const fuelForMass = (mass: number) => {
