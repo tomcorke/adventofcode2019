@@ -18,7 +18,7 @@ let solution: Solution | undefined;
 try {
   solution = require(`./${args[0]}/`).default;
 } catch (e) {
-  console.error(`Error loading solution for day ${args[0]}:`, e);
+  console.error(`Error loading solution for day ${args[0]}:`, e.message);
   process.exit(1);
 }
 
