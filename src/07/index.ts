@@ -146,7 +146,7 @@ const run2 = async (originalInput: number[], sequence: number[]) => {
       console.log(`Creating machine with inputs [${phase}]`);
     }
     const machine = new IntCodeMachine(input, EXTENDED_OPS, [phase], {
-      silent: true,
+      silent: SILENT,
       pauseOnOutput: true
     });
     return machine;
