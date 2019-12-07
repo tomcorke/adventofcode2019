@@ -57,7 +57,7 @@ const timeSolution = async (func: Solution) => {
 
     if (solution.partTwo) {
       console.log("");
-      console.log(`Running day ${day} part one...`);
+      console.log(`Running day ${day} part two...`);
       const [partTwoResult, partTwoTime] = await timeSolution(solution.partTwo);
       console.log("");
       console.log(`Day ${day} part two result:`, partTwoResult);

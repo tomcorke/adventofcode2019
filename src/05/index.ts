@@ -336,7 +336,6 @@ export class IntCodeMachine {
 
     const tapeString = JSON.stringify(this.tape);
     if (!this.silent) {
-      console.log("");
       console.log(
         `Running machine: ${tapeString.substr(0, 40)}${
           tapeString.length > 40 ? "...]" : ""
