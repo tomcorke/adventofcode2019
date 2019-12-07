@@ -2,6 +2,7 @@ import { readFileSeparated, toNumber } from "../helpers";
 import { Solution } from "..";
 import _ from "lodash";
 import readline from "readline";
+import { EventEmitter } from "events";
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -54,18 +55,17 @@ const OPS: OpMap = {
   3: {
     // get input
     parameters: 1,
-    func: async ({ tape, inputs }, [a]) => {
-      if (inputs.length > 0) {
-        const mockInput = inputs.shift()!;
-        console.log(`Using mock input: ${mockInput}`);
-        setParameter(tape, a, mockInput);
+    func: async ({ tape, inputs: inputQueue, onInput }, [a]) => {
+      const getInputFromQueue = () => {
+        const input = inputQueue.shift()!;
+        setParameter(tape, a, input);
         return;
+      };
+      if (inputQueue.length > 0) {
+        return getInputFromQueue();
       }
       return new Promise<void>(resolve => {
-        rl.question("Enter value: ", value => {
-          setParameter(tape, a, parseInt(value));
-          resolve();
-        });
+        resolve(onInput(getInputFromQueue));
       });
     }
   },
@@ -74,12 +74,12 @@ const OPS: OpMap = {
     parameters: 1,
     func: async ({ tape, output }, [a], [modeA]) => {
       const result = getParameter(tape, a, modeA);
-      output(result);
+      await output(result);
     }
   }
 };
 
-const EXTENDED_OPS: OpMap = {
+export const EXTENDED_OPS: OpMap = {
   ...OPS,
   5: {
     // jump-if-true
@@ -190,31 +190,110 @@ const parseOp = (tape: Tape, pointer: number, opMap: OpMap) => {
   return { opCode, parameterCount, parameterModes };
 };
 
-class IntCodeMachine {
+interface IntCodeMachineOptions {
+  silent?: boolean;
+  pauseOnOutput?: boolean;
+}
+
+export class IntCodeMachine {
+  private events = new EventEmitter();
+
   public inputs: number[] = [];
   private outputs: number[] = [];
+
+  private lastInputOrOutput: number | undefined;
 
   public tape: Tape;
   private opMap: OpMap;
 
   private pointer: number = 0;
+  private running: boolean = false;
 
-  constructor(tape: Tape, opMap: OpMap = OPS, mockInputs: number[] = []) {
+  private silent: boolean;
+  private pauseOnOutput: boolean;
+
+  constructor(
+    tape: Tape,
+    opMap: OpMap = OPS,
+    inputQueue: number[] = [],
+    { silent = false, pauseOnOutput = false }: IntCodeMachineOptions = {}
+  ) {
     this.tape = tape.slice();
     this.opMap = opMap;
-    this.inputs = mockInputs.slice();
 
+    this.inputs = inputQueue.slice();
+    this.onInput = this.onInput.bind(this);
+
+    this.onOutput = this.onOutput.bind(this);
     this.output = this.output.bind(this);
+
+    this.onHalt = this.onHalt.bind(this);
+
+    this.onOutputOrHalt = this.onOutputOrHalt.bind(this);
+
+    this.silent = silent;
+    this.pauseOnOutput = pauseOnOutput;
   }
 
-  output(value: number) {
-    // console.log(`Output:`, value);
+  input(value: number) {
+    this.lastInputOrOutput = value;
+    this.inputs.push(value);
+    this.events.emit("input");
+  }
+
+  onInput(handler: () => void) {
+    this.events.once("input", () => handler());
+  }
+
+  async output(value: number) {
+    if (!this.silent) {
+      console.log(`Output:`, value);
+    }
     if (value !== NaN) {
+      this.lastInputOrOutput = value;
       this.outputs.push(value);
+      this.events.emit("output", value);
+      if (this.pauseOnOutput) {
+        await this.pause();
+      }
     }
   }
 
-  runStep = async (): Promise<number> => {
+  onOutput(handler: (output: number) => void) {
+    this.events.once("output", (value: number) => handler(value));
+  }
+
+  onHalt(handler: (value: number) => void) {
+    this.events.once("halt", (value: number) => handler(value));
+  }
+
+  onOutputOrHalt(handler: (value: number) => void) {
+    this.events.once("output", (value: number) => {
+      this.events.removeListener("halt", handler);
+      handler(value);
+    });
+    this.events.removeAllListeners("halt");
+    this.events.once("halt", (value: number) => {
+      this.events.removeListener("output", handler);
+      handler(value);
+    });
+  }
+
+  async pause() {
+    if (!this.silent) {
+      console.log("Pausing machine until resume event...");
+    }
+    await new Promise(resolve => this.events.once("resume", resolve));
+  }
+
+  resume() {
+    if (!this.silent) {
+      console.log("Resuming machine...");
+    }
+    this.events.emit("resume");
+  }
+
+  async runStep() {
     const { opCode, parameterCount, parameterModes } = parseOp(
       this.tape,
       this.pointer,
@@ -225,7 +304,14 @@ class IntCodeMachine {
       this.pointer + 1 + parameterCount
     );
 
-    // console.log(`Running op:`, opCode, parameters, parameterModes);
+    if (!this.silent) {
+      console.log(
+        `Running op@${this.pointer}:`,
+        opCode,
+        parameters,
+        parameterModes
+      );
+    }
     const newPointer = await this.opMap[opCode].func(
       this,
       parameters,
@@ -234,26 +320,46 @@ class IntCodeMachine {
 
     const nextPointer = this.pointer + 1 + parameterCount;
     return newPointer || nextPointer;
-  };
+  }
+
+  get isRunning() {
+    return this.running;
+  }
 
   public async run() {
+    if (this.running) {
+      this.resume();
+      return;
+    }
+
+    this.running = true;
+
     const tapeString = JSON.stringify(this.tape);
-    console.log("");
-    console.log(
-      `Running machine: ${tapeString.substr(0, 40)}${
-        tapeString.length > 40 ? "...]" : ""
-      }`
-    );
+    if (!this.silent) {
+      console.log("");
+      console.log(
+        `Running machine: ${tapeString.substr(0, 40)}${
+          tapeString.length > 40 ? "...]" : ""
+        }`
+      );
+    }
 
     let endProgram = false;
     while (endProgram === false) {
       try {
         this.pointer = await this.runStep();
       } catch (e) {
-        console.log(`Program halted:`, e.message);
+        if (!this.silent) {
+          console.log(`Program halted:`, e.message);
+        }
         endProgram = true;
       }
     }
+
+    this.running = false;
+
+    this.events.emit("halt", this.lastInputOrOutput);
+
     return this.outputs.find(o => o !== undefined && o !== NaN);
   }
 }

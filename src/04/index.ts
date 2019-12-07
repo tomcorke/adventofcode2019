@@ -79,9 +79,9 @@ const isValidR = (password: string, option: boolean) => {
 solution.partTwo = async () => {
   const [from, to] = await getInput;
 
-  test("112233", true, true);
-  test("123444", false, true);
-  test("111122", true, true);
+  // test("112233", true, true);
+  // test("123444", false, true);
+  // test("111122", true, true);
 
   // one "line" golf
   // return Array.from(Array(to - from).keys()).filter(p =>
