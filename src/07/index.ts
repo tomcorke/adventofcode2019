@@ -1,7 +1,6 @@
 import { readFileSeparated, toNumber } from "../helpers";
 import { Solution } from "..";
 import _ from "lodash";
-import readline from "readline";
 import { IntCodeMachine, EXTENDED_OPS } from "../05";
 
 const getInput = readFileSeparated(",", "07", "input").then(r =>
