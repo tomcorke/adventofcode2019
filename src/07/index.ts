@@ -1,7 +1,7 @@
 import { readFileSeparated, toNumber } from "../helpers";
 import { Solution } from "..";
 import _ from "lodash";
-import { IntCodeMachine, EXTENDED_OPS } from "../05";
+import { IntCodeMachine, EXTENDED_OPS } from "../int-code-machine";
 
 const getInput = readFileSeparated(",", "07", "input").then(r =>
   r.map(toNumber)
@@ -41,7 +41,7 @@ const run = async (originalInput: number[], sequence: number[]) => {
         `Unexpected undefined result from IntCodeMachine, phase ${phase}, signal ${signal}`
       );
     }
-    signal = result;
+    signal = result[0];
   }
 
   return signal;
