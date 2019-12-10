@@ -17,8 +17,8 @@ const round = (value: number) => Math.floor(value * 100) / 100;
 const getNormal = (vector: Coord, magnitude: number): Coord => {
   return { x: round(vector.x / magnitude), y: round(vector.y / magnitude) };
 };
-const getUnitVector = (v: Coord): Coord => {
-  for (let divisor = 30; divisor > 0; divisor--) {
+const getMinimalVector = (v: Coord): Coord => {
+  for (let divisor = 20; divisor > 1; divisor--) {
     if (v.x % divisor === 0 && v.y % divisor === 0) {
       return { x: v.x / divisor, y: v.y / divisor };
     }
@@ -29,7 +29,7 @@ const getUnitVector = (v: Coord): Coord => {
 const getAsteroidData = (from: Coord, to: Coord) => {
   const between = { x: to.x - from.x, y: to.y - from.y };
   const magnitude = getMagnitude(between);
-  const normal = getUnitVector(between);
+  const normal = getMinimalVector(between);
   return { distance: magnitude, normal };
 };
 const coordEquals = (a: Coord, b: Coord) => {
@@ -143,11 +143,10 @@ const byAngleFrom = (from: Coord) => (a: Coord, b: Coord) => {
 };
 
 const vaporiseAsteroids = (asteroids: boolean[][], useBest?: Coord) => {
-  const { best } = useBest ? { best: useBest } : getBestPosition(asteroids);
+  const { best } = getBestPosition(asteroids);
   if (!best) {
-    throw Error("Could not detemine best position");
+    throw Error("Could not determine best position");
   }
-  console.log("Using best:", best);
 
   let result: Coord | undefined;
 
