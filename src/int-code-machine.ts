@@ -61,7 +61,10 @@ export const OPS: OpMap = {
         return getInputFromQueue();
       }
       return new Promise<void>(resolve => {
-        resolve(machine.onInput(getInputFromQueue));
+        machine.onInputOnce(() => {
+          resolve(getInputFromQueue());
+        });
+        machine.emitWaitingForInput();
       });
     }
   },
@@ -187,7 +190,7 @@ const parseOp = (tape: Tape, pointer: number, opMap: OpMap) => {
   return { opCode, parameterCount, parameterModes };
 };
 
-interface IntCodeMachineOptions {
+export interface IntCodeMachineOptions {
   silent?: boolean;
   pauseOnOutput?: boolean;
 }
@@ -207,6 +210,7 @@ export class IntCodeMachine {
   private relativeBase: number = 0;
 
   private running: boolean = false;
+  private paused: boolean = false;
 
   private silent: boolean;
   private pauseOnOutput: boolean;
@@ -232,8 +236,16 @@ export class IntCodeMachine {
     this.events.emit("input");
   }
 
-  onInput(handler: () => void) {
+  onInputOnce(handler: () => void) {
     this.events.once("input", () => handler());
+  }
+
+  onWaitingForInput(handler: () => void) {
+    this.events.on("waitingForInput", () => handler());
+  }
+
+  emitWaitingForInput() {
+    this.events.emit("waitingForInput");
   }
 
   async output(value: number) {
@@ -251,14 +263,18 @@ export class IntCodeMachine {
   }
 
   onOutput(handler: (output: number) => void) {
+    this.events.on("output", (value: number) => handler(value));
+  }
+
+  onOutputOnce(handler: (output: number) => void) {
     this.events.once("output", (value: number) => handler(value));
   }
 
-  onHalt(handler: (value: number) => void) {
+  onHaltOnce(handler: (value: number) => void) {
     this.events.once("halt", (value: number) => handler(value));
   }
 
-  onOutputOrHalt(handler: (value: number) => void) {
+  onOutputOrHaltOnce(handler: (value: number) => void) {
     this.events.once("output", (value: number) => {
       this.events.removeListener("halt", handler);
       handler(value);
@@ -274,7 +290,7 @@ export class IntCodeMachine {
     if (!this.silent) {
       console.log("Pausing machine until resume event...");
     }
-    await new Promise(resolve => this.events.once("resume", resolve));
+    this.paused = true;
   }
 
   resume() {
@@ -335,6 +351,10 @@ export class IntCodeMachine {
   }
 
   async runStep() {
+    if (this.paused) {
+      await new Promise(resolve => this.events.once("resume", resolve));
+    }
+
     const { opCode, parameterCount, parameterModes } = parseOp(
       this.tape,
       this.pointer,

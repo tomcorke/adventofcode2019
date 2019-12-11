@@ -69,13 +69,11 @@ solution.partTwo = async () => {
   }
 
   const flatLayerLines = splitByLength(
-    splitFlatLayer.map(l => (l === "1" ? "*" : " ")).join(""),
+    splitFlatLayer.map(l => (l === "1" ? "█" : " ")).join(""),
     LAYER_WIDTH
   );
 
-  flatLayerLines.forEach(line =>
-    console.log(splitByLength(line, 5).join("  "))
-  );
+  flatLayerLines.forEach(line => console.log(line));
 
   return NaN;
 };
