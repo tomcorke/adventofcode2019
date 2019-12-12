@@ -1,7 +1,7 @@
 import { readFileSeparated, toVector3, Vector3 } from "../helpers";
 import { Solution } from "..";
 
-//const getInput = readFileSeparated("\n", "12", "inputExampleOne").then(values =>
+// const getInput = readFileSeparated("\n", "12", "testInput").then(values =>
 const getInput = readFileSeparated("\n", "12", "input").then(values =>
   values.map(toVector3)
 );
@@ -43,23 +43,34 @@ class Moon {
     this.addVelocity({ x: 0, y: 0, z: accel });
   }
 
-  applyGravityOfMoons(moons: Moon[]) {
+  applyGravityOfMoons(
+    moons: Moon[],
+    runX: boolean = true,
+    runY: boolean = true,
+    runZ: boolean = true
+  ) {
     for (let i = 0; i < moons.length; i++) {
       const moon = moons[i];
-      if (moon.position.x > this.position.x) {
-        this.addXVelocity(1);
-      } else if (moon.position.x < this.position.x) {
-        this.addXVelocity(-1);
+      if (runX) {
+        if (moon.position.x > this.position.x) {
+          this.addXVelocity(1);
+        } else if (moon.position.x < this.position.x) {
+          this.addXVelocity(-1);
+        }
       }
-      if (moon.position.y > this.position.y) {
-        this.addYVelocity(1);
-      } else if (moon.position.y < this.position.y) {
-        this.addYVelocity(-1);
+      if (runY) {
+        if (moon.position.y > this.position.y) {
+          this.addYVelocity(1);
+        } else if (moon.position.y < this.position.y) {
+          this.addYVelocity(-1);
+        }
       }
-      if (moon.position.z > this.position.z) {
-        this.addZVelocity(1);
-      } else if (moon.position.z < this.position.z) {
-        this.addZVelocity(-1);
+      if (runZ) {
+        if (moon.position.z > this.position.z) {
+          this.addZVelocity(1);
+        } else if (moon.position.z < this.position.z) {
+          this.addZVelocity(-1);
+        }
       }
     }
   }
@@ -105,11 +116,11 @@ class System {
     this.moons.push(moon);
   }
 
-  step() {
+  step(runX: boolean = true, runY: boolean = true, runZ: boolean = true) {
     this.stepCount++;
     for (let i = 0; i < this.moons.length; i++) {
       const otherMoons = this.moons.filter((m, j) => i !== j);
-      this.moons[i].applyGravityOfMoons(otherMoons);
+      this.moons[i].applyGravityOfMoons(otherMoons, runX, runY, runZ);
     }
     for (let i = 0; i < this.moons.length; i++) {
       this.moons[i].move();
@@ -120,20 +131,20 @@ class System {
     return this.moons.reduce((total, moon) => total + moon.energy, 0);
   }
 
-  get snapshot() {
+  get snapshotString() {
     return this.moons.map(m => m.toString()).join(",");
   }
 
   get snapshotX() {
-    return this.moons.map(m => m.toStringX()).join(",");
+    return this.moons.flatMap(moon => [moon.position.x, moon.velocity.x]);
   }
 
   get snapshotY() {
-    return this.moons.map(m => m.toStringY()).join(",");
+    return this.moons.flatMap(moon => [moon.position.y, moon.velocity.y]);
   }
 
   get snapshotZ() {
-    return this.moons.map(m => m.toStringZ()).join(",");
+    return this.moons.flatMap(moon => [moon.position.z, moon.velocity.z]);
   }
 
   report() {
@@ -142,6 +153,16 @@ class System {
     }
   }
 }
+
+const arrayEquals = <T extends any>(a: T[], b: T[]) => {
+  // Assume same length
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) {
+      return false;
+    }
+  }
+  return true;
+};
 
 const solution: Solution = async () => {
   const input = (await getInput).slice();
@@ -168,6 +189,60 @@ const solution: Solution = async () => {
   return system.totalEnergy;
 };
 
+const primes: number[] = [2];
+const getNextPrimeAfter = (fromN: number) => {
+  let p = fromN;
+  while (true) {
+    p++;
+    if (!primes.some(prime => p % prime === 0)) {
+      primes.push(p);
+      return p;
+    }
+  }
+};
+
+const getPrimeFactors = (n: number) => {
+  if (n === 1) {
+    throw Error("What are you doing");
+  }
+  if (Math.floor(n) !== n) {
+    throw Error("Cannot work with non-integer values, fool");
+  }
+  if (primes.includes(n)) {
+    return [n];
+  }
+
+  let r = n;
+  let factors: number[] = [];
+  while (r > 1) {
+    let foundFactor = false;
+    let i = 0;
+    while (i < primes.length) {
+      if (r >= primes[i] && r % primes[i] === 0) {
+        factors.push(primes[i]);
+        r = r / primes[i];
+        if (Math.floor(r) !== r) {
+          throw Error("Non-integer result while finding prime factors");
+        }
+        foundFactor = true;
+        break;
+      }
+      i++;
+      if (i === primes.length && !foundFactor) {
+        getNextPrimeAfter(primes[primes.length - 1]);
+        if (primes[primes.length - 1] > r) {
+          throw Error(
+            `We shouldn't have got here, found prime greater than remainder: ${
+              primes[primes.length - 1]
+            }`
+          );
+        }
+      }
+    }
+  }
+  return factors;
+};
+
 solution.partTwo = async () => {
   const input = (await getInput).slice();
 
@@ -185,59 +260,66 @@ solution.partTwo = async () => {
     system.addMoon(moon);
   }
 
-  let snapshotsX: string[] = [];
-  let snapshotsY: string[] = [];
-  let snapshotsZ: string[] = [];
+  let originalX = system.snapshotX;
+  let originalY = system.snapshotY;
+  let originalZ = system.snapshotZ;
 
   let periodX: number = 0;
   let periodY: number = 0;
   let periodZ: number = 0;
 
-  let stepPeriod = 1;
-  let lastUpdate = 1;
-
-  console.log(system.snapshot);
-
   while (true) {
-    for (let i = 0; i < stepPeriod; i++) {
-      await system.step();
-      // if (system.stepCount >= lastUpdate * 2) {
-      //   console.log(`Simulated steps: ${system.stepCount}`);
-      //   lastUpdate = system.stepCount;
-      // }
+    system.step(!periodX, !periodY, !periodZ);
+    if (!periodX && arrayEquals(system.snapshotX, originalX)) {
+      periodX = system.stepCount;
+      console.log(`Found repeated X at step ${system.stepCount}`);
     }
-    if (!periodX) {
-      const snapshot = system.snapshotX;
-      const index = snapshotsX.indexOf(snapshot);
-      if (index > -1) {
-        console.log("Found X period at", system.stepCount - index);
-        periodX = system.stepCount - index;
-      }
-      snapshotsX.push(snapshot);
+    if (!periodY && arrayEquals(system.snapshotY, originalY)) {
+      periodY = system.stepCount;
+      console.log(`Found repeated Y at step ${system.stepCount}`);
     }
-    if (!periodY) {
-      const snapshot = system.snapshotY;
-      const index = snapshotsY.indexOf(snapshot);
-      if (index > -1) {
-        console.log("Found Y period at", system.stepCount - index);
-        periodY = system.stepCount - index;
-      }
-      snapshotsY.push(snapshot);
-    }
-    if (!periodZ) {
-      const snapshot = system.snapshotZ;
-      const index = snapshotsZ.indexOf(snapshot);
-      if (index > -1) {
-        console.log("Found Z period at", system.stepCount - index);
-        periodZ = system.stepCount - index;
-      }
-      snapshotsZ.push(snapshot);
+    if (!periodZ && arrayEquals(system.snapshotZ, originalZ)) {
+      periodZ = system.stepCount;
+      console.log(`Found repeated Z at step ${system.stepCount}`);
     }
     if (periodX && periodY && periodZ) {
-      console.log(system.snapshot);
-      return system.stepCount;
+      break;
     }
   }
+
+  const xFactors = getPrimeFactors(periodX);
+  const yFactors = getPrimeFactors(periodY);
+  const zFactors = getPrimeFactors(periodZ);
+
+  console.log("Prime factors:");
+  console.log({
+    [periodX]: xFactors,
+    [periodY]: yFactors,
+    [periodZ]: zFactors
+  });
+
+  const uniqueDigits = Array.from(
+    new Set([...xFactors, ...yFactors, ...zFactors])
+  );
+
+  const digitCounts = uniqueDigits.reduce(
+    (counts, digit) => ({
+      ...counts,
+      [digit]: Math.max(
+        ...[xFactors, yFactors, zFactors].map(
+          fa => fa.filter(f => f === digit).length
+        )
+      )
+    }),
+    {} as { [key: number]: number }
+  );
+
+  const sum = Object.entries(digitCounts).reduce(
+    (total, [digit, count]) => total * Math.pow(parseInt(digit), count),
+    1
+  );
+
+  return sum;
 };
 
 solution.inputs = [getInput];
