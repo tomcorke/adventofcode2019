@@ -28,3 +28,21 @@ export const readFileLines = async (...pathParts: string[]) => {
 };
 
 export const toNumber = (s: string) => parseFloat(s);
+
+export interface Vector3 {
+  x: number;
+  y: number;
+  z: number;
+}
+
+export const toVector3 = (vectorString: string): Vector3 => {
+  const match = /^<x=(-?\d+),\s?y=(-?\d+),\s?z=(-?\d+)>/i.exec(vectorString);
+  if (!match) {
+    throw Error(`Could not parse vector from string: "${vectorString}"`);
+  }
+  return {
+    x: parseInt(match[1]),
+    y: parseInt(match[2]),
+    z: parseInt(match[3])
+  };
+};

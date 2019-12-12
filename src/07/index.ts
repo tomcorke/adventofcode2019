@@ -161,7 +161,7 @@ const run2 = async (originalInput: number[], sequence: number[]) => {
     const machine = machines[machineIndex];
     const machineOutput = new Promise<number>(resolve => {
       const outputHandler = (value: number) => resolve(value);
-      machine.onOutputOrHalt(outputHandler);
+      machine.onOutputOrHaltOnce(outputHandler);
     });
 
     if (!machine.isRunning) {
