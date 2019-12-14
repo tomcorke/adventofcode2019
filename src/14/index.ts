@@ -187,7 +187,7 @@ solution.partTwo = async () => {
   factory.chemicals.FUEL = 0;
   let fuelProduced = 1;
 
-  let fuelPerTick = 100000;
+  let fuelPerTick = 100000000000;
 
   while (true) {
     try {
