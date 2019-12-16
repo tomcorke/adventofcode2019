@@ -75,11 +75,7 @@ export const OPS: OpMap = {
       const result = machine.getParameter(a, modeA);
       await machine.output(result);
     }
-  }
-};
-
-export const EXTENDED_OPS: OpMap = {
-  ...OPS,
+  },
   5: {
     // jump-if-true
     parameters: 2,
@@ -153,7 +149,7 @@ const toParameterMode = (p: string): ParameterMode => {
   }
 };
 
-const parseOp = (tape: Tape, pointer: number, opMap: OpMap) => {
+const parseOp = (tape: Tape, pointer: number) => {
   const op = tape[pointer];
   let opString = op.toString();
   const opCode = parseInt(opString.substr(opString.length - 2));
@@ -164,7 +160,7 @@ const parseOp = (tape: Tape, pointer: number, opMap: OpMap) => {
 
   let parameterCount;
   try {
-    parameterCount = opMap[opCode].parameters;
+    parameterCount = OPS[opCode].parameters;
   } catch (e) {
     console.error(
       `Error getting parameters for opCode ${opCode} from opString ${opString} at pointer ${pointer}`
@@ -204,25 +200,23 @@ export class IntCodeMachine {
   private lastInputOrOutput: number | undefined;
 
   public tape: Tape;
-  private opMap: OpMap;
 
   private pointer: number = 0;
   private relativeBase: number = 0;
 
   private running: boolean = false;
   private paused: boolean = false;
+  private shouldHalt: boolean = false;
 
   private silent: boolean;
   private pauseOnOutput: boolean;
 
   constructor(
     tape: Tape,
-    opMap: OpMap = OPS,
     inputQueue: number[] = [],
     { silent = false, pauseOnOutput = false }: IntCodeMachineOptions = {}
   ) {
     this.tape = tape.slice();
-    this.opMap = opMap;
 
     this.inputs = inputQueue.slice();
 
@@ -357,8 +351,7 @@ export class IntCodeMachine {
 
     const { opCode, parameterCount, parameterModes } = parseOp(
       this.tape,
-      this.pointer,
-      this.opMap
+      this.pointer
     );
     const parameters = this.tape.slice(
       this.pointer + 1,
@@ -374,11 +367,7 @@ export class IntCodeMachine {
         parameterModes
       );
     }
-    const newPointer = await this.opMap[opCode].func(
-      this,
-      parameters,
-      parameterModes
-    );
+    const newPointer = await OPS[opCode].func(this, parameters, parameterModes);
 
     const nextPointer = this.pointer + 1 + parameterCount;
     return newPointer !== undefined ? newPointer : nextPointer;
@@ -386,6 +375,10 @@ export class IntCodeMachine {
 
   get isRunning() {
     return this.running;
+  }
+
+  public halt() {
+    this.shouldHalt = true;
   }
 
   public async run(): Promise<number[]> {
@@ -407,6 +400,9 @@ export class IntCodeMachine {
     let endProgram = false;
     while (endProgram === false) {
       try {
+        if (this.shouldHalt) {
+          throw Error("Manual halt flag detected");
+        }
         this.pointer = await this.runStep();
       } catch (e) {
         if (!this.silent) {

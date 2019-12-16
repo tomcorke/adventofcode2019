@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/tomcorke/aoc2019#readme",
   "devDependencies": {
+    "@types/clear": "^0.1.0",
     "@types/lodash": "^4.14.149",
     "@types/node": "^12.12.14",
     "nodemon": "^2.0.1",
@@ -28,6 +29,7 @@
     "typescript": "^3.7.2"
   },
   "dependencies": {
+    "clear": "^0.1.0",
     "lodash": "^4.17.15"
   }
 }
