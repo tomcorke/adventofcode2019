@@ -1,7 +1,7 @@
 import { readFileSeparated, toNumber } from "../helpers";
 import { Solution } from "..";
 import _ from "lodash";
-import { IntCodeMachine, EXTENDED_OPS } from "../int-code-machine";
+import { IntCodeMachine } from "../int-code-machine";
 
 const getInput = readFileSeparated(",", "07", "input").then(r =>
   r.map(toNumber)
@@ -32,7 +32,7 @@ const run = async (originalInput: number[], sequence: number[]) => {
     if (!SILENT) {
       console.log(`Creating machine with [${phase}, ${signal}] inputs`);
     }
-    const machine = new IntCodeMachine(input, EXTENDED_OPS, [phase, signal], {
+    const machine = new IntCodeMachine(input, [phase, signal], {
       silent: SILENT
     });
     const result = await machine.run();
@@ -144,7 +144,7 @@ const run2 = async (originalInput: number[], sequence: number[]) => {
     if (!SILENT) {
       console.log(`Creating machine with inputs [${phase}]`);
     }
-    const machine = new IntCodeMachine(input, EXTENDED_OPS, [phase], {
+    const machine = new IntCodeMachine(input, [phase], {
       silent: SILENT,
       pauseOnOutput: true
     });

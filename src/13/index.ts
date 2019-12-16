@@ -1,6 +1,6 @@
 import { readFileSeparated, toNumber } from "../helpers";
 import { Solution } from "..";
-import { IntCodeMachine, EXTENDED_OPS } from "../int-code-machine";
+import { IntCodeMachine } from "../int-code-machine";
 
 const getInput = readFileSeparated(",", "13", "input").then(values =>
   values.map(toNumber)
@@ -31,7 +31,7 @@ const solution: Solution = async () => {
   let outputY = 0;
   let tiles: { [x: number]: { [y: number]: number } } = {};
 
-  const machine = new IntCodeMachine(input, EXTENDED_OPS, [], { silent: true });
+  const machine = new IntCodeMachine(input, [], { silent: true });
 
   machine.onOutput(output => {
     switch (outputMode) {
@@ -69,7 +69,7 @@ solution.partTwo = async () => {
   let paddleX = 0;
   let score = 0;
 
-  const machine = new IntCodeMachine(input, EXTENDED_OPS, [], { silent: true });
+  const machine = new IntCodeMachine(input, [], { silent: true });
 
   machine.onOutput(output => {
     switch (outputMode) {

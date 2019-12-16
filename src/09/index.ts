@@ -1,6 +1,6 @@
 import { readFileSeparated, toNumber } from "../helpers";
 import { Solution } from "..";
-import { IntCodeMachine, EXTENDED_OPS } from "../int-code-machine";
+import { IntCodeMachine } from "../int-code-machine";
 
 const getInput = readFileSeparated(",", "09", "input").then(values =>
   values.map(toNumber)
@@ -18,12 +18,9 @@ const equals: (expected: string) => CheckFunction = (
 };
 
 const test = async (inputString: string, check: CheckFunction) => {
-  const machine = new IntCodeMachine(
-    inputString.split(",").map(toNumber),
-    EXTENDED_OPS,
-    [],
-    { silent: true }
-  );
+  const machine = new IntCodeMachine(inputString.split(",").map(toNumber), [], {
+    silent: true
+  });
   const result = await machine.run();
   const resultString = result.map(r => r.toString()).join(",");
   check(resultString);
@@ -42,7 +39,7 @@ const solution: Solution = async () => {
   });
   await test("104,1125899906842624,99", equals("1125899906842624"));
 
-  const machine = new IntCodeMachine(await getInput, EXTENDED_OPS, [1], {
+  const machine = new IntCodeMachine(await getInput, [1], {
     silent: true
   });
   const results = await machine.run();
@@ -52,7 +49,7 @@ const solution: Solution = async () => {
 };
 
 solution.partTwo = async () => {
-  const machine = new IntCodeMachine(await getInput, EXTENDED_OPS, [2], {
+  const machine = new IntCodeMachine(await getInput, [2], {
     silent: true
   });
   const results = await machine.run();

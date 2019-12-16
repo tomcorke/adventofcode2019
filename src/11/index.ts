@@ -1,10 +1,6 @@
 import { readFileSeparated, toNumber } from "../helpers";
 import { Solution } from "..";
-import {
-  IntCodeMachine,
-  EXTENDED_OPS,
-  IntCodeMachineOptions
-} from "../int-code-machine";
+import { IntCodeMachine, IntCodeMachineOptions } from "../int-code-machine";
 
 const getInput = readFileSeparated(",", "11", "input").then(values =>
   values.map(toNumber)
@@ -143,12 +139,7 @@ class HullPaintingRobot {
     this.paintColor = false;
     this.direction = Direction.UP;
 
-    const machine = new IntCodeMachine(
-      this.program.slice(),
-      EXTENDED_OPS,
-      [],
-      this.options
-    );
+    const machine = new IntCodeMachine(this.program.slice(), [], this.options);
 
     machine.onOutput(output => {
       switch (this.machineOutputMode) {
