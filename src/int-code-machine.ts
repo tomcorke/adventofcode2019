@@ -224,7 +224,15 @@ export class IntCodeMachine {
     this.pauseOnOutput = pauseOnOutput;
   }
 
-  input(value: number) {
+  public getLastInputOrOutput() {
+    return this.lastInputOrOutput;
+  }
+
+  input(value: number | string) {
+    if (typeof value === "string") {
+      value.split("").forEach(c => this.input(c.charCodeAt(0)));
+      return;
+    }
     this.lastInputOrOutput = value;
     this.inputs.push(value);
     this.events.emit("input");
