@@ -5,6 +5,7 @@ type AsyncAnswer = Promise<Answer>;
 export type Solution = {
   (): Answer | AsyncAnswer;
   partTwo?: Solution;
+  tests?: () => Promise<void> | void;
   inputs?: Promise<any>[];
 };
 
@@ -26,7 +27,7 @@ try {
   process.exit(1);
 }
 
-const timeSolution = async (func: Solution) => {
+const timeSolution = async <T>(func: () => T) => {
   const start = performance.now();
   const result = await func();
   const end = performance.now();
@@ -46,9 +47,16 @@ const timeSolution = async (func: Solution) => {
     if (solution.inputs) {
       console.log("Waiting for async inputs to resolve...");
       await Promise.all(solution.inputs);
-      console.log("");
     }
 
+    if (typeof solution.tests === "function") {
+      console.log("");
+      console.log("Running tests...");
+      const [_, testTime] = await timeSolution(solution.tests);
+      console.log(`Completed in ${testTime}ms`);
+    }
+
+    console.log("");
     console.log(`Running day ${day} part one...`);
     const [result, partOneTime] = await timeSolution(solution);
     console.log("");
@@ -66,6 +74,6 @@ const timeSolution = async (func: Solution) => {
 
     console.log("");
   } catch (e) {
-    console.error(`Error running solution for day ${day}:`, e.message);
+    console.error(`Error running solution for day ${day}:`, e);
   }
 })();
