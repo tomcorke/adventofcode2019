@@ -5,7 +5,7 @@ const DEFAULT_MAPPER = (s: string) => s;
 
 export const readFile = async (...pathParts: string[]) => {
   return new Promise<string>((resolve, reject) => {
-    const filePath = path.join(__dirname, ...pathParts);
+    const filePath = path.join(__dirname, "../src/", ...pathParts);
     console.log(`Loading file from path: "${filePath}"`);
     fs.readFile(filePath, "utf8", (err, data) => {
       if (err) {
