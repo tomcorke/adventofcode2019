@@ -58,6 +58,7 @@ const mapWithPortals = (map: string[][]) => {
 interface Path {
   from: string;
   to: string;
+  direction: number;
   steps: number;
 }
 
@@ -103,7 +104,12 @@ const floodPathsFrom = (map: string[][], origin: Portal) => {
           stepped = true;
           tempVisited.push([x, y]);
           if (isPortal(tile)) {
-            paths.push({ from: origin.portal, to: tile, steps: steps }); // Add 1 for portal ends
+            paths.push({
+              from: origin.portal,
+              to: tile,
+              steps: steps,
+              direction: 1
+            }); // Add 1 for portal ends
           }
         }
       }

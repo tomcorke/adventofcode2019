@@ -58,13 +58,20 @@ export const OPS: OpMap = {
         return;
       };
       if (machine.inputs.length > 0) {
+        machine.setIdle(false);
         return getInputFromQueue();
+      }
+      if (machine.defaultInput !== undefined) {
+        machine.setIdle(true);
+        machine.setParameter(a, machine.defaultInput, mode);
+        return;
       }
       return new Promise<void>(resolve => {
         machine.onInputOnce(() => {
+          machine.setWaitingForInput(false);
           resolve(getInputFromQueue());
         });
-        machine.emitWaitingForInput();
+        machine.setWaitingForInput(true);
       });
     }
   },
@@ -151,6 +158,9 @@ const toParameterMode = (p: string): ParameterMode => {
 
 const parseOp = (tape: Tape, pointer: number) => {
   const op = tape[pointer];
+  if (op === undefined) {
+    throw Error(`Undefined opcode at position ${pointer}`);
+  }
   let opString = op.toString();
   const opCode = parseInt(opString.substr(opString.length - 2));
 
@@ -189,10 +199,14 @@ const parseOp = (tape: Tape, pointer: number) => {
 export interface IntCodeMachineOptions {
   silent?: boolean;
   pauseOnOutput?: boolean;
+  defaultInput?: number;
+  label?: string;
 }
 
 export class IntCodeMachine {
   private events = new EventEmitter();
+
+  public label?: string;
 
   public inputs: number[] = [];
   private outputs: number[] = [];
@@ -210,11 +224,20 @@ export class IntCodeMachine {
 
   private silent: boolean;
   private pauseOnOutput: boolean;
+  public defaultInput?: number;
+
+  public isWaitingForInput: boolean = false;
+  public isIdle: boolean = false;
 
   constructor(
     tape: Tape,
     inputQueue: number[] = [],
-    { silent = false, pauseOnOutput = false }: IntCodeMachineOptions = {}
+    {
+      silent = true,
+      pauseOnOutput = false,
+      defaultInput,
+      label
+    }: IntCodeMachineOptions = {}
   ) {
     this.tape = tape.slice();
 
@@ -222,6 +245,8 @@ export class IntCodeMachine {
 
     this.silent = silent;
     this.pauseOnOutput = pauseOnOutput;
+    this.defaultInput = defaultInput;
+    this.label = label;
   }
 
   public getLastInputOrOutput() {
@@ -246,8 +271,28 @@ export class IntCodeMachine {
     this.events.on("waitingForInput", () => handler());
   }
 
-  emitWaitingForInput() {
-    this.events.emit("waitingForInput");
+  onStopWaitingForInput(handler: () => void) {
+    this.events.on("stopWaitingForInput", () => handler());
+  }
+
+  setWaitingForInput(isWaitingForInput: boolean = true) {
+    this.isWaitingForInput = isWaitingForInput;
+    if (isWaitingForInput) {
+      this.events.emit("waitingForInput");
+    } else {
+      this.events.emit("stopWaitinForInput");
+    }
+  }
+
+  onIdle(handler: (isIdle: boolean) => void) {
+    this.events.on("idle", () => handler(this.isIdle));
+  }
+
+  setIdle(isIdle: boolean = true) {
+    if (this.isIdle !== isIdle) {
+      this.isIdle = isIdle;
+      this.events.emit("idle");
+    }
   }
 
   async output(value: number) {
